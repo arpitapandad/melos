@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Melos</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { width:100vw; height:100vh; background:#433850; overflow:hidden; cursor:none; font-family:Georgia,serif; }
+    canvas { position:fixed; inset:0; width:100%; height:100%; }
+    #cursor-dot { position:fixed; width:8px; height:8px; background:#CBAACB; border-radius:50%; pointer-events:none; transform:translate(-50%,-50%); transition:opacity 0.3s; z-index:10; }
+    #overlay { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; z-index:5; }
+    #logo-m { font-size:96px; font-weight:400; color:#CBAACB; line-height:1; }
+    #divider-line { width:1px; height:32px; background:#6B3F3F; margin:10px 0; }
+    #logo-word { font-size:18px; color:#FDFEF5; letter-spacing:8px; }
+    #tagline { font-size:11px; color:#CBAACB; letter-spacing:4px; margin-top:6px; opacity:0.7; }
+    #glass-btn { margin-top:36px; pointer-events:all; padding:12px 36px; border-radius:999px; background:rgba(203,170,203,0.12); border:1px solid rgba(203,170,203,0.35); color:#FDFEF5; font-family:Georgia,serif; font-size:13px; letter-spacing:3px; cursor:pointer; backdrop-filter:blur(8px); }
+    #glass-btn:hover { background:rgba(203,170,203,0.22); }
+    #hint { position:fixed; bottom:20px; width:100%; text-align:center; font-size:11px; color:rgba(203,170,203,0.4); letter-spacing:2px; pointer-events:none; z-index:5; transition:opacity 0.5s; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div id="cursor-dot"></div>
+  <div id="overlay">
+    <div id="logo-m">M</div>
+    <div id="divider-line"></div>
+    <div id="logo-word">MELOS</div>
+    <div id="tagline">music together</div>
+    <button id="glass-btn" onclick="location.href='login.html'">enter</button>
+  </div>
+  <div id="hint">move your cursor</div>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const dot = document.getElementById('cursor-dot');
+    const C = { bg:'#433850', cream:'#FDFEF5', lavender:'#CBAACB', plum:'#6B3F3F', slate:'#454859' };
+    const LINE_COLORS = [C.lavender, C.plum, C.slate, '#5C4A6A', '#7A5C5C', '#3D3F52', '#8B7A9B', '#4A5068'];
+    let W, H, lines = [], mouse = { x:-999, y:-999 }, animId;
+
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+      buildLines();
+      draw();
+    }
+
+    function buildLines() {
+      lines = [];
+      let x = 0;
+      const count = Math.floor(W / 18) + 2;
+      for (let i = 0; i < count; i++) {
+        const w = 10 + Math.random() * 22;
+        lines.push({ x, w, pts: makePath(x, w), color: LINE_COLORS[i % LINE_COLORS.length], hoverAmt: 0 });
+        x += w + 1 + Math.random() * 6;
+      }
+    }
+
+    function makePath(x, w) {
+      const pts = [];
+      const segs = 8 + Math.floor(Math.random() * 6);
+      for (let i = 0; i <= segs; i++) {
+        pts.push({ x: x + (Math.random() - .5) * w * 0.6, y: (i / segs) * H });
+      }
+      return pts;
+    }
+
+    function lineContainsMouse(l) {
+      const pts = l.pts;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[i], p1 = pts[i + 1];
+        if (mouse.y < p0.y || mouse.y > p1.y) continue;
+        const t = (mouse.y - p0.y) / (p1.y - p0.y);
+        if (Math.abs(mouse.x - (p0.x + t * (p1.x - p0.x))) < l.w * 0.7 + 8) return true;
+      }
+      return false;
+    }
+
+    function lerpColor(a, b, t) {
+      const ah = a.replace('#', ''), bh = b.replace('#', '');
+      const ar = parseInt(ah.slice(0, 2), 16), ag = parseInt(ah.slice(2, 4), 16), ab = parseInt(ah.slice(4, 6), 16);
+      const br = parseInt(bh.slice(0, 2), 16), bg = parseInt(bh.slice(2, 4), 16), bb = parseInt(bh.slice(4, 6), 16);
+      return `rgb(${Math.round(ar + (br - ar) * t)},${Math.round(ag + (bg - ag) * t)},${Math.round(ab + (bb - ab) * t)})`;
+    }
+
+    function drawLine(l) {
+      const pts = l.pts;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x + l.w / 2, pts[0].y);
+      for (let i = 1; i < pts.length; i++) {
+        const p = pts[i - 1], c = pts[i];
+        ctx.quadraticCurveTo(p.x + l.w / 2, p.y, (p.x + c.x) / 2 + l.w / 2, (p.y + c.y) / 2);
+      }
+      ctx.lineTo(pts[pts.length - 1].x + l.w / 2, pts[pts.length - 1].y);
+      ctx.lineWidth = l.w * (1 + l.hoverAmt * 0.15);
+      ctx.strokeStyle = lerpColor(l.color, C.cream, l.hoverAmt);
+      ctx.globalAlpha = 0.55 + l.hoverAmt * 0.45;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = C.bg;
+      ctx.fillRect(0, 0, W, H);
+      lines.forEach(drawLine);
+    }
+
+    function tick() {
+      let d = false;
+      lines.forEach(l => {
+        const tgt = lineContainsMouse(l) ? 1 : 0;
+        const p = l.hoverAmt;
+        l.hoverAmt += (tgt - l.hoverAmt) * 0.12;
+        if (Math.abs(l.hoverAmt - p) > 0.002) d = true;
+      });
+      if (d) draw();
+      animId = requestAnimationFrame(tick);
+    }
+
+    document.addEventListener('mousemove', e => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+      dot.style.left = e.clientX + 'px';
+      dot.style.top = e.clientY + 'px';
+      dot.style.opacity = '1';
+      document.getElementById('hint').style.opacity = '0';
+    });
+
+    document.addEventListener('mouseleave', () => {
+      mouse.x = -999;
+      mouse.y = -999;
+      dot.style.opacity = '0';
+    });
+
+    window.addEventListener('resize', () => {
+      cancelAnimationFrame(animId);
+      resize();
+    });
+
+    resize();
+    tick();
+  </script>
+</body>
+</html>
