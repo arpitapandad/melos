@@ -156,7 +156,7 @@ canvas { position:fixed; inset:0; width:100%; height:100%; pointer-events:none; 
     <div class="step active" id="step-auth">
       <div class="msg" id="auth-msg"></div>
 
-      <a href="/auth/google" class="google-btn">
+      <a href="/auth/google" class="google-btn" style="margin-bottom: 8px;">
         <svg class="google-icon" viewBox="0 0 18 18" fill="none">
           <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 14.013 17.64 11.706 17.64 9.2z" fill="#CBAACB"/>
           <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#9F87AF"/>
@@ -165,6 +165,12 @@ canvas { position:fixed; inset:0; width:100%; height:100%; pointer-events:none; 
         </svg>
         continue with google
       </a>
+      <a href="/auth/spotify" class="google-btn">
+        <svg class="google-icon" viewBox="0 0 24 24" fill="#CBAACB">
+          <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.66 11.64 1.26.36.18.479.659.301 1.08zm1.44-3.3c-.301.42-.84.54-1.26.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.02.6-1.14C9.6 9.9 15 10.56 18.6 12.84c.36.18.54.78.36 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.3c-.6.18-1.2-.18-1.38-.72-.18-.6.18-1.2.72-1.38 4.26-1.26 11.28-1.02 15.721 1.62.539.3.719 1.02.419 1.56-.239.54-.959.72-1.559.3z" />
+        </svg>
+        continue with spotify
+      </a>
 
       <div class="or-row">
         <div class="or-line"></div>
@@ -172,6 +178,10 @@ canvas { position:fixed; inset:0; width:100%; height:100%; pointer-events:none; 
         <div class="or-line"></div>
       </div>
 
+      <div class="field" id="name-field">
+        <label>name</label>
+        <input type="text" id="name" placeholder="your name" autocomplete="name"/>
+      </div>
       <div class="field">
         <label>email</label>
         <input type="email" id="email" placeholder="you@example.com" autocomplete="email"/>
@@ -193,7 +203,7 @@ canvas { position:fixed; inset:0; width:100%; height:100%; pointer-events:none; 
     <!-- ── Step 2: Choose username ───────────────────────────── -->
     <div class="step" id="step-username">
       <p class="step-title">one last thing</p>
-      <p class="step-sub">choose a username — this is how<br/>others will see you in rooms</p>
+      <p class="step-sub">pick a name for this session —<br/>others in your room will see it</p>
 
       <div class="msg" id="username-msg"></div>
 
@@ -290,11 +300,13 @@ resize(); tick();
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('step') === 'username') showStep('username');
 if (urlParams.get('error') === 'google_failed') showMsg('auth-msg', 'Google sign-in failed. Please try again.', 'error');
+if (urlParams.get('error') === 'spotify_failed') showMsg('auth-msg', 'Spotify sign-in failed. Please try again.', 'error');
 
 // ── Auth UI ───────────────────────────────────────────────────────────────────
 let isRegistering = false;
 const toggleLink  = document.getElementById('toggle-link');
 const authBtn     = document.getElementById('auth-btn');
+const nameField   = document.getElementById('name-field');
 
 toggleLink.addEventListener('click', () => {
   isRegistering = !isRegistering;
@@ -306,17 +318,28 @@ toggleLink.addEventListener('click', () => {
 authBtn.addEventListener('click', async () => {
   const email    = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
-  if (!email || !password) {
-    showMsg('auth-msg', 'Please enter your email and password.', 'error');
-    return;
+  
+  if (isRegistering) {
+    const name = document.getElementById('name').value.trim();
+    if (!name || !email || !password) {
+      showMsg('auth-msg', 'Please fill out all fields.', 'error');
+      return;
+    }
+  } else {
+    if (!email || !password) {
+      showMsg('auth-msg', 'Please enter your email and password.', 'error');
+      return;
+    }
   }
+
+  // Always go to username step after email auth
   setLoading('auth', true);
   try {
     const endpoint = isRegistering ? '/auth/register' : '/auth/login';
     const res  = await fetch(endpoint, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ name: document.getElementById('name').value.trim(), email, password }),
     });
     const data = await res.json();
     if (!res.ok) { showMsg('auth-msg', data.error || 'Something went wrong.', 'error'); return; }
@@ -336,10 +359,10 @@ document.getElementById('password').addEventListener('keydown', e => {
 // ── Username step ─────────────────────────────────────────────────────────────
 document.getElementById('username-btn').addEventListener('click', async () => {
   const username = document.getElementById('username').value.trim();
-  if (!username) { showMsg('username-msg', 'Please enter a username.', 'error'); return; }
+  if (!username) { showMsg('username-msg', 'Please enter a session name.', 'error'); return; }
   setLoading('username', true);
   try {
-    const res  = await fetch('/auth/username', {
+    const res  = await fetch('/auth/set-username', {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username }),

@@ -1,0 +1,34 @@
+[
+  {
+    "id": 1774193611891,
+    "email": "arpitapanda1007@gmail.com",
+    "username": "arpita",
+    "name": "arpita panda",
+    "password_hash": null,
+    "google_id": "118368234900448435807",
+    "spotify_id": null,
+    "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocIqnqMq14p-jPz4QHVcRNiROj8UGH3Z3p-0jhwU_a_Dka1McWzn=s96-c",
+    "created_at": "2026-03-22T15:33:28.529Z",
+    "updated_at": "2026-03-24T15:51:25.421Z",
+    "last_login": "2026-03-24T14:46:14.599Z",
+    "spotify_token": "BQBQHi9CNnpCgNU45R8v56bli2YXaqo6fQJv7_AOdm_nbcXF6qUlTmyIZBSkLGCxew76EPQnm7-nHhIiOAYNw9x4n-YMiQ2DDhv-rVw4FonLaXkyWRXimIpAzjWOJiYV7JojF1KKnSy1pu-s_H0iRuL8dDhb1WUBIZ4NlTwftPE0vv8mZG5vnE0cC9RANEpqWcHwUF58MenzbQcKzWFhN0FwW1kHyhoW1TQcFBvNkhLhsrsxvsHwXCcbToYYiLgain97Wl_9iFz7lvA",
+    "spotify_refresh_token": "AQDz4qFLzrWF-2A2sg8BxyiI27mNwO32JU0VIU1UwxFxPoW0vpvf9u-M9pREOHpx87rHlKlmyjRcXm9H7KmY1YEFyBJP6I6d0X-Kvu9EEaionHg5x59eqeigNQlc3pcbJVg",
+    "spotify_token_expires_at": 1774371085390
+  },
+  {
+    "id": 1774194528762,
+    "email": "arpitapanda0710@gmail.com",
+    "username": "arpita",
+    "name": "Arpita Panda",
+    "password_hash": null,
+    "google_id": "110813668858612183346",
+    "spotify_id": "1pzclnvji47jdr0z2zx90s326",
+    "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocIF-Kr6MAS2NEAfQkLxH4u2dfOMb7exTG_gw6lp4A5mQNDsu2PF=s96-c",
+    "created_at": "2026-03-22T15:48:40.318Z",
+    "updated_at": "2026-03-24T14:41:21.241Z",
+    "last_login": "2026-03-24T14:15:56.171Z",
+    "spotify_token": "BQBDwhJNrX-IpmaD1v5xC27MUorNeQ3wf3z5m0dbUxgNwjg46pp9QJsYbpNqsHesfCEaIPhooeTOv1pq_KGR-KNeN5LFP0cPDPzBj_EqGPIx2l5S7O0PDHt5Z7cjYYC8Ekk43aEUi1gdB7s4xaspDvjDDxgbVWrIVmGKsHRGtDfuBh6v5fToiCxDb7D1xcSw2W7X16ui-ABZzCtcKdEVllwlTQqlF2KQarFif8x2GcdV_Gpgj5XtVhikzKDit-nK557xxp6DSW7PqtE",
+    "spotify_refresh_token": "AQBZYHXH3STw5bb85qzSG73sL8F67i4KUEKm6c8Z-aS8XIWR8tOVSZebDOLv0N9h7j__R6RtxeAX6clLmqGXa2tqPkF6b7nnLeLiAwdjlMeOxTNlmp1ZfWM-KyitzpWZu3k",
+    "spotify_token_expires_at": 1774366870651
+  }
+]

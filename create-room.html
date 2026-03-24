@@ -159,7 +159,16 @@ canvas { position:fixed; inset:0; width:100%; height:100%; }
   letter-spacing:2px; flex:1;
 }
 .color-picker-wrap {
-  position:relative; width:36px; height:36px;
+  position:relative; width:44px; height:44px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+  padding: 3px;
+  box-shadow: 0 0 15px rgba(255,255,255,0.2);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.color-picker-wrap:hover {
+  transform: scale(1.15) rotate(15deg);
+  box-shadow: 0 0 25px rgba(255,255,255,0.4);
 }
 .color-picker-wrap input[type=color] {
   position:absolute; inset:0;
@@ -167,8 +176,8 @@ canvas { position:fixed; inset:0; width:100%; height:100%; }
   opacity:0; cursor:pointer; border:none; padding:0;
 }
 .color-preview {
-  width:36px; height:36px; border-radius:50%;
-  border:2px solid rgba(203,170,203,0.3);
+  width:100%; height:100%; border-radius:50%;
+  border:2px solid #222;
   pointer-events:none;
 }
 .custom-apply {
@@ -181,6 +190,27 @@ canvas { position:fixed; inset:0; width:100%; height:100%; }
   transition:background 0.2s;
 }
 .custom-apply:hover { background:rgba(203,170,203,0.2); }
+
+.theme-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(16,9,3,0.9);
+  color: #FDFEF5;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 11px;
+  letter-spacing: 2px;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 1000;
+  top: 0; left: 0;
+  transform: translate(0, 0);
+  border: 1px solid rgba(200,168,122,0.2);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+.theme-tooltip.visible {
+  opacity: 1;
+}
 
 .preview-strip {
   height:5px; border-radius:3px;
@@ -226,12 +256,7 @@ canvas { position:fixed; inset:0; width:100%; height:100%; }
 
     <div class="field">
       <label>room name</label>
-      <input type="text" placeholder="give your room a name…" maxlength="40"/>
-    </div>
-
-    <div class="field">
-      <label>description</label>
-      <textarea placeholder="what's the vibe? (optional)"></textarea>
+      <input type="text" id="room-name-input" placeholder="give your room a name…" maxlength="40"/>
     </div>
 
     <p class="theme-label">choose a theme</p>
@@ -247,9 +272,11 @@ canvas { position:fixed; inset:0; width:100%; height:100%; }
     </div>
 
     <div class="preview-strip" id="preview-strip"></div>
-    <button class="submit-btn">create room</button>
+    <button class="submit-btn" id="submit-create-room">create room</button>
   </div>
 </div>
+
+<div class="theme-tooltip" id="theme-tooltip"></div>
 
 <script>
 const canvas = document.getElementById('canvas');
@@ -306,10 +333,43 @@ function buildOrbs() {
   }
 }
 
+function hexToRgb(hex) {
+    if(!hex) return [0,0,0];
+    let c = hex.substring(1).split('');
+    if(c.length == 3){ c= [c[0], c[0], c[1], c[1], c[2], c[2]]; }
+    c= '0x'+c.join('');
+    return [(c>>16)&255, (c>>8)&255, c&255];
+}
+function rgbToHex(r,g,b) {
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase().padStart(6,'0');
+}
+function lighten(hex, percent) {
+    let rgb = hexToRgb(hex);
+    let r = Math.min(255, Math.floor(rgb[0] + (255 - rgb[0]) * percent));
+    let g = Math.min(255, Math.floor(rgb[1] + (255 - rgb[1]) * percent));
+    let b = Math.min(255, Math.floor(rgb[2] + (255 - rgb[2]) * percent));
+    return rgbToHex(r,g,b);
+}
+
+function updateBackgroundColors() {
+    let activeBgHex = customColor ? customColor : (selectedTheme.base || selectedTheme.a);
+    const stop0 = activeBgHex;
+    const stop35 = lighten(activeBgHex, 0.05);
+    const stop65 = lighten(activeBgHex, 0.02);
+    const stop100 = lighten(activeBgHex, 0.08);
+    window.bgGradient = { stop0, stop35, stop65, stop100 };
+    
+    const palette = [stop0, stop35, stop65, stop100, lighten(activeBgHex, 0.15), lighten(activeBgHex, 0.25)];
+    rings.forEach(r => r.color = palette[Math.floor(Math.random() * palette.length)]);
+    orbs.forEach(o => o.color = palette[Math.floor(Math.random() * palette.length)]);
+    grainLines.forEach(g => g.color = palette[Math.floor(Math.random() * palette.length)]);
+}
+
 function resize() {
   W = canvas.width  = window.innerWidth;
   H = canvas.height = window.innerHeight;
   buildRings(); buildGrain(); buildOrbs();
+  updateBackgroundColors();
 }
 
 function nearMouse(x, y, r) {
@@ -319,7 +379,16 @@ function nearMouse(x, y, r) {
 
 function draw() {
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#2E1F2E';
+  if(window.bgGradient) {
+      const bg = ctx.createLinearGradient(0, 0, W, H);
+      bg.addColorStop(0, window.bgGradient.stop0);
+      bg.addColorStop(0.35, window.bgGradient.stop35);
+      bg.addColorStop(0.65, window.bgGradient.stop65);
+      bg.addColorStop(1, window.bgGradient.stop100);
+      ctx.fillStyle = bg;
+  } else {
+      ctx.fillStyle = '#2E1F2E';
+  }
   ctx.fillRect(0, 0, W, H);
 
   orbs.forEach(o => {
@@ -344,32 +413,67 @@ function draw() {
     const pulse = Math.sin(time * ring.speed * 1000 + ring.phase) * 12;
     const r = ring.baseR + pulse;
     const near = nearMouse(ring.cx, ring.cy, r + 40);
+    
+    ring._hov = ring._hov || 0;
+    ring._hov += ((near ? 1 : 0) - ring._hov) * 0.1;
+
     ctx.beginPath();
     ctx.arc(ring.cx, ring.cy, r, 0, Math.PI * 2);
     ctx.strokeStyle = ring.color;
     ctx.lineWidth = ring.thickness;
-    ctx.globalAlpha = near ? Math.min(ring.opacity * 3, 0.35) : ring.opacity;
+    ctx.globalAlpha = ring.opacity;
     ctx.stroke();
+
+    if (ring._hov > 0.01) {
+        ctx.save();
+        const hgrad = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 200);
+        hgrad.addColorStop(0, `rgba(255, 255, 255, ${ring._hov * 0.65})`);
+        hgrad.addColorStop(1, `rgba(255, 255, 255, 0)`);
+        ctx.strokeStyle = hgrad;
+        ctx.lineWidth = ring.thickness * (1 + ring._hov * 2.5);
+        ctx.globalAlpha = 1;
+        ctx.beginPath(); ctx.arc(ring.cx, ring.cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+    
     ctx.globalAlpha = 1;
   });
 
   grainLines.forEach(g => {
     g.offset += g.speed;
-    if (g.offset > W + H) g.offset -= (W + H) * 1.5;
-    if (g.offset < -(W + H)) g.offset += (W + H) * 1.5;
-    const sx = g.offset, sy = 0, ex = g.offset - H, ey = H;
+    if (g.offset > W + H + 500) g.offset -= (W + H + 1000);
+    if (g.offset < -(W + H + 500)) g.offset += (W + H + 1000);
+    
+    const sx = g.offset + 200, sy = -200, ex = g.offset - H - 200, ey = H + 200;
     const dx = ex - sx, dy = ey - sy;
     const len = Math.sqrt(dx*dx + dy*dy);
     const t = Math.max(0, Math.min(1, ((mouse.x-sx)*dx + (mouse.y-sy)*dy) / (len*len)));
     const dist = Math.sqrt((mouse.x-(sx+t*dx))**2 + (mouse.y-(sy+t*dy))**2);
-    const hover = Math.max(0, 1 - dist / 80);
+    const hover = Math.max(0, 1 - dist / 85);
     g.hoverAmt += (hover - g.hoverAmt) * 0.1;
+    
     ctx.beginPath();
     ctx.moveTo(sx, sy); ctx.lineTo(ex, ey);
-    ctx.lineWidth = g.thickness * (1 + g.hoverAmt * 2);
+    ctx.lineWidth = g.thickness;
     ctx.strokeStyle = g.color;
-    ctx.globalAlpha = g.opacity + g.hoverAmt * 0.4;
+    ctx.globalAlpha = g.opacity;
     ctx.stroke();
+    
+    if (g.hoverAmt > 0.01) {
+        ctx.save();
+        const px = sx + t * dx;
+        const py = sy + t * dy;
+        const hgrad = ctx.createRadialGradient(px, py, 0, px, py, 180);
+        hgrad.addColorStop(0, `rgba(255, 255, 255, ${g.hoverAmt * 0.85})`);
+        hgrad.addColorStop(1, `rgba(255, 255, 255, 0)`);
+        ctx.strokeStyle = hgrad;
+        ctx.lineWidth = g.thickness * (1 + g.hoverAmt * 3);
+        ctx.globalAlpha = 1;
+        ctx.stroke();
+        ctx.restore();
+    }
+    
     ctx.globalAlpha = 1;
   });
 
@@ -378,16 +482,16 @@ function draw() {
 }
 
 const THEMES = [
-  { name:'Melos',    a:'#433850', b:'#CBAACB', c:'#6B3F3F' },
-  { name:'Midnight', a:'#1A1A2E', b:'#E94560', c:'#0F3460' },
+  { name:'Dark Brown', a:'#130C05', b:'#1A0E06', c:'#2C1A0A', base: '#130C05' },
+  { name:'Midnight', a:'#0F3460', b:'#16213E', c:'#1A1A2E' },
   { name:'Forest',   a:'#1B2A1F', b:'#4CAF7D', c:'#2D5016' },
   { name:'Ember',    a:'#2C1810', b:'#E8824A', c:'#8B3A1E' },
-  { name:'Ocean',    a:'#0D1B2A', b:'#5BA4CF', c:'#1A3A5C' },
+  { name:'Ocean',    a:'#0D1B2A', b:'#1A3A5C', c:'#5BA4CF' },
   { name:'Rose',     a:'#2A1520', b:'#D4789E', c:'#8B2252' },
-  { name:'Slate',    a:'#1C1F2E', b:'#8892B0', c:'#2D3561' },
-  { name:'Amber',    a:'#1E1800', b:'#F0B429', c:'#6B4C00' },
-  { name:'Dusk',     a:'#1A1025', b:'#B388FF', c:'#4A148C' },
-  { name:'Sage',     a:'#141E17', b:'#80CBC4', c:'#2E4A3E' },
+  { name:'Slate',    a:'#1C1F2E', b:'#2D3561', c:'#8892B0' },
+  { name:'Amber',    a:'#1E1800', b:'#6B4C00', c:'#F0B429' },
+  { name:'Dusk',     a:'#1A1025', b:'#4A148C', c:'#B388FF' },
+  { name:'Sage',     a:'#141E17', b:'#2E4A3E', c:'#80CBC4' },
 ];
 
 let selectedTheme = THEMES[0], customColor = null;
@@ -399,18 +503,36 @@ function makeGradient(t) {
 }
 function updateStrip() {
   strip.style.background = customColor ? customColor : makeGradient(selectedTheme);
+  updateBackgroundColors();
 }
 
 THEMES.forEach((t, i) => {
   const sw = document.createElement('div');
   sw.className = 'theme-swatch' + (i === 0 ? ' selected' : '');
   sw.style.background = makeGradient(t);
-  sw.title = t.name;
   sw.innerHTML = `<span class="check"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="2,7 5.5,10.5 12,3" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`;
   sw.addEventListener('click', () => {
     document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('selected'));
     sw.classList.add('selected');
     selectedTheme = t; customColor = null; updateStrip();
+  });
+  sw.addEventListener('mousemove', e => {
+    const rect = sw.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    sw.style.transform = `translate(${x * 0.4}px, ${y * 0.4}px) scale(1.15)`;
+    sw.style.zIndex = 10;
+    
+    const tooltip = document.getElementById('theme-tooltip');
+    tooltip.textContent = t.name;
+    tooltip.classList.add('visible');
+    tooltip.style.left = (e.clientX + 15) + 'px';
+    tooltip.style.top = (e.clientY - 35) + 'px';
+  });
+  sw.addEventListener('mouseleave', () => {
+    sw.style.transform = '';
+    sw.style.zIndex = 1;
+    document.getElementById('theme-tooltip').classList.remove('visible');
   });
   grid.appendChild(sw);
 });
@@ -435,6 +557,20 @@ document.getElementById('close-btn').addEventListener('click', () => {
 document.getElementById('modal-overlay').addEventListener('click', e => {
   if (e.target === document.getElementById('modal-overlay'))
     document.getElementById('modal-overlay').classList.remove('open');
+});
+
+document.getElementById('submit-create-room').addEventListener('click', () => {
+  const roomName = document.getElementById('room-name-input').value.trim();
+  const chosenColor = customColor ? customColor : (selectedTheme.base || selectedTheme.a);
+  if (roomName) {
+    window.location.href = `room.html?room=${encodeURIComponent(roomName)}&color=${encodeURIComponent(chosenColor)}`;
+  } else {
+    const input = document.getElementById('room-name-input');
+    input.style.borderColor = 'rgba(255, 100, 100, 0.8)';
+    setTimeout(() => {
+      input.style.borderColor = 'rgba(203,170,203,0.13)';
+    }, 1500);
+  }
 });
 
 document.addEventListener('mousemove', e => {
