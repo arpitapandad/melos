@@ -9,11 +9,11 @@
     "spotify_id": null,
     "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocIqnqMq14p-jPz4QHVcRNiROj8UGH3Z3p-0jhwU_a_Dka1McWzn=s96-c",
     "created_at": "2026-03-22T15:33:28.529Z",
-    "updated_at": "2026-03-24T15:51:25.421Z",
-    "last_login": "2026-03-24T14:46:14.599Z",
-    "spotify_token": "BQBQHi9CNnpCgNU45R8v56bli2YXaqo6fQJv7_AOdm_nbcXF6qUlTmyIZBSkLGCxew76EPQnm7-nHhIiOAYNw9x4n-YMiQ2DDhv-rVw4FonLaXkyWRXimIpAzjWOJiYV7JojF1KKnSy1pu-s_H0iRuL8dDhb1WUBIZ4NlTwftPE0vv8mZG5vnE0cC9RANEpqWcHwUF58MenzbQcKzWFhN0FwW1kHyhoW1TQcFBvNkhLhsrsxvsHwXCcbToYYiLgain97Wl_9iFz7lvA",
+    "updated_at": "2026-03-31T17:30:51.132Z",
+    "last_login": "2026-03-31T17:30:51.131Z",
+    "spotify_token": "BQD226q1m7pkPwB-YBDkzBGSoLQzFGpCOqBPe0ion7r2tPXoCOZP2IoWUFEohiPpJ0CGUVp4QXr5KpLKaO0tp5dltusOfBY395kXLAEKld47t_ivRgSCamoAnaIuYrZFfmj478M0iY11ZpbGM23HmV9XgaYQydNDipzOaHGKc0wKIezmNaF2BeNzYsddz82iuAM_OAef06vSt7grcXc4RY2GGI3_VQVQ9TfKqjZxazu9cQ9DM79xWhdAmEGv8-0a5cG8sEtXM2EQ7sk",
     "spotify_refresh_token": "AQDz4qFLzrWF-2A2sg8BxyiI27mNwO32JU0VIU1UwxFxPoW0vpvf9u-M9pREOHpx87rHlKlmyjRcXm9H7KmY1YEFyBJP6I6d0X-Kvu9EEaionHg5x59eqeigNQlc3pcbJVg",
-    "spotify_token_expires_at": 1774371085390
+    "spotify_token_expires_at": 1774979456755
   },
   {
     "id": 1774194528762,
@@ -25,10 +25,10 @@
     "spotify_id": "1pzclnvji47jdr0z2zx90s326",
     "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocIF-Kr6MAS2NEAfQkLxH4u2dfOMb7exTG_gw6lp4A5mQNDsu2PF=s96-c",
     "created_at": "2026-03-22T15:48:40.318Z",
-    "updated_at": "2026-03-24T14:41:21.241Z",
-    "last_login": "2026-03-24T14:15:56.171Z",
-    "spotify_token": "BQBDwhJNrX-IpmaD1v5xC27MUorNeQ3wf3z5m0dbUxgNwjg46pp9QJsYbpNqsHesfCEaIPhooeTOv1pq_KGR-KNeN5LFP0cPDPzBj_EqGPIx2l5S7O0PDHt5Z7cjYYC8Ekk43aEUi1gdB7s4xaspDvjDDxgbVWrIVmGKsHRGtDfuBh6v5fToiCxDb7D1xcSw2W7X16ui-ABZzCtcKdEVllwlTQqlF2KQarFif8x2GcdV_Gpgj5XtVhikzKDit-nK557xxp6DSW7PqtE",
-    "spotify_refresh_token": "AQBZYHXH3STw5bb85qzSG73sL8F67i4KUEKm6c8Z-aS8XIWR8tOVSZebDOLv0N9h7j__R6RtxeAX6clLmqGXa2tqPkF6b7nnLeLiAwdjlMeOxTNlmp1ZfWM-KyitzpWZu3k",
-    "spotify_token_expires_at": 1774366870651
+    "updated_at": "2026-03-28T18:19:13.597Z",
+    "last_login": "2026-03-28T18:19:13.595Z",
+    "spotify_token": "BQBBI5UddPVoLAE8iyXxOEu61YDl1ljVKTAOfkSToIlLEQvx3YX6IpoevtVDuEv-Xqb9-s2Wplujbelmg-C2OqZuZc-Bh6s7Vudq5FUfg1vUgivu1-hdoo0rzsV5_I5b3JgzPAX3hOgqo0w4woB_qlKjFWXFPDBM0qa44O2lCqUf4-8y0PYq2Xir7kQE_oTKcgJBrSEJBzlymEF1lrLOTd67-4O7B9IWEKhuQyt-paEaTW--XLktHyseTTG8BbkvdkZr8Y9WVKD3xqo",
+    "spotify_refresh_token": "AQA1wdL5i6xPiyMHp-gj8RgyGRV2LiRMWVEZ9xkOq5dZZn7-EkP1gKBO7vqhWGcvJP8XSoDoecfAi9_lekTR360rqTU-g_GpnzE6XbotFLnf3ShGLsgYlDZfqV2Xj-11SNo",
+    "spotify_token_expires_at": 1774725553590
   }
 ]

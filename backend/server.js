@@ -331,7 +331,15 @@ app.get('/auth/spotify/callback',
       });
 
       // Redirect back to the room they were in, or the dashboard
-      return res.redirect(returnTo || '/create-room.html');
+      // Append spotifyLinked=1 so the room can show the session-name prompt
+      if (returnTo) {
+        try {
+          const rUrl = new URL(returnTo);
+          rUrl.searchParams.set('spotifyLinked', '1');
+          return res.redirect(rUrl.toString());
+        } catch (_) {}
+      }
+      return res.redirect('/create-room.html');
     }
 
     const tempToken = jwt.sign(
@@ -558,6 +566,129 @@ app.post('/auth/logout', (req, res) => {
 
 // ── Email/Password Routes ─────────────────────────────────────────────────────
 app.use('/auth', authRoutes);
+
+// ── Room Presence (in-memory, no WebSocket needed) ────────────────────────────
+// roomPresence: { [roomId]: { [userId]: { username, initials, color, lastSeen } } }
+const roomPresence = {};
+const PRESENCE_TTL_MS = 60 * 1000; // 60 seconds
+
+// Helpers
+// POST /api/spotify/queue — add a track to the user's Spotify queue
+app.post('/api/spotify/queue', async (req, res) => {
+  const { uri } = req.body;
+  if (!uri) return res.status(400).json({ error: 'uri required' });
+  const token = req.cookies?.melos_token;
+  if (!token) return res.status(401).json({ error: 'Not authenticated' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const accessToken = await getOrRefreshSpotifyToken(decoded.id);
+    if (!accessToken) return res.status(401).json({ error: 'Spotify not linked' });
+    await axios.post(
+      `https://api.spotify.com/v1/me/player/queue?uri=${encodeURIComponent(uri)}`,
+      {},
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    res.json({ success: true });
+  } catch (err) {
+    const msg = err.response?.data?.error?.message || err.message;
+    res.status(500).json({ error: msg });
+  }
+});
+
+function pruneRoom(roomId) {
+  if (!roomPresence[roomId]) return;
+  const now = Date.now();
+  for (const uid of Object.keys(roomPresence[roomId])) {
+    if (now - roomPresence[roomId][uid].lastSeen > PRESENCE_TTL_MS) {
+      delete roomPresence[roomId][uid];
+    }
+  }
+  if (Object.keys(roomPresence[roomId]).length === 0) {
+    delete roomPresence[roomId];
+  }
+}
+
+function makeInitials(name) {
+  if (!name) return '?';
+  const parts = name.trim().split(/[\s_]+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Warm avatar colours — sepia palette, no purple
+const AVATAR_COLORS = [
+  'rgba(200,123,110,0.40)',
+  'rgba(90,82,72,0.40)',
+  'rgba(140,90,58,0.40)',
+  'rgba(200,123,110,0.30)',
+  'rgba(90,82,72,0.30)',
+  'rgba(184,144,96,0.40)',
+  'rgba(223,160,144,0.35)',
+  'rgba(140,90,58,0.30)',
+];
+
+function colorForIndex(idx) {
+  return AVATAR_COLORS[idx % AVATAR_COLORS.length];
+}
+
+// POST /api/room/heartbeat  — call every 30 s
+app.post('/api/room/heartbeat', (req, res) => {
+  const token = req.cookies?.melos_token;
+  if (!token) return res.status(401).json({ error: 'Not authenticated' });
+
+  const { roomId, displayName: clientName } = req.body;
+  if (!roomId) return res.status(400).json({ error: 'roomId required' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = store.findById(decoded.id);
+    const defaultName = (user && user.username) ? user.username : (decoded.username || decoded.name || 'listener');
+    // Allow client to override with a per-session display name
+    const displayName = (clientName && clientName.trim()) ? clientName.trim() : defaultName;
+
+    if (!roomPresence[roomId]) roomPresence[roomId] = {};
+    roomPresence[roomId][decoded.id] = {
+      username: displayName,
+      initials: makeInitials(displayName),
+      lastSeen: Date.now(),
+    };
+    pruneRoom(roomId); // clear stale entries from other users
+    // Build the self record
+    const selfRecord = roomPresence[roomId][decoded.id];
+    const selfInfo = {
+      username: selfRecord.username,
+      initials: selfRecord.initials,
+      color: colorForIndex(0),
+    };
+
+    // Return listeners EXCLUDING the calling user (they are the 'self')
+    const listeners = Object.entries(roomPresence[roomId])
+      .filter(([uid]) => uid !== String(decoded.id))
+      .map(([_, l], i) => ({
+        username: l.username,
+        initials: l.initials,
+        color: colorForIndex(i + 1), // offset so colours don't clash with self
+      }));
+    res.json({ success: true, self: selfInfo, listeners });
+  } catch (err) {
+    res.status(401).json({ error: 'Invalid session' });
+  }
+});
+
+// GET /api/room/presence?room=<roomId>  — poll for listener list
+app.get('/api/room/presence', (req, res) => {
+  const { room } = req.query;
+  if (!room) return res.status(400).json({ error: 'room query param required' });
+  pruneRoom(room);
+  const listeners = roomPresence[room]
+    ? Object.values(roomPresence[room]).map((l, i) => ({
+        username: l.username,
+        initials: l.initials,
+        color: colorForIndex(i),
+      }))
+    : [];
+  res.json({ listeners });
+});
 
 // Health
 app.get('/health', (_req, res) => res.json({ status: 'ok', users: store.all().length }));

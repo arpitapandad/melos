@@ -334,7 +334,7 @@
             flex-direction: column;
             align-items: center;
             gap: 5px;
-            z-index: 8;
+            z-index: 6;
             cursor: pointer;
             animation: av-float 6s ease-in-out infinite;
         }
@@ -654,9 +654,7 @@
             justify-content: center;
         }
 
-        #disc-label {
-            /* Override: when cover art is loaded, show it filling the whole label */
-        }
+
 
         #disc-art {
             width: 50px;
@@ -859,6 +857,7 @@
             background: rgba(200, 168, 122, 0.12);
             outline: none;
             -webkit-appearance: none;
+            appearance: none;
             cursor: pointer;
         }
 
@@ -1058,8 +1057,12 @@
         #search-drawer {
             position: absolute;
             left: 20px;
-            bottom: 120px;
+            bottom: 70px; /* sits just above the search trigger + taskbar */
             width: 256px;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: none;
             border-radius: 20px;
             padding: 16px;
             z-index: 16;
@@ -1071,6 +1074,7 @@
             pointer-events: none;
             transition: transform 0.28s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.22s;
         }
+        #search-drawer::-webkit-scrollbar { display: none; }
 
         #search-drawer.open {
             transform: translateY(0);
@@ -1101,25 +1105,29 @@
 
         #search-input {
             width: 100%;
-            padding: 10px 13px;
+            padding: 11px 14px;
             border-radius: 12px;
-            background: rgba(245, 237, 216, 0.05);
-            border: 1px solid rgba(200, 168, 122, 0.18);
+            background: rgba(245, 237, 216, 0.07);
+            border: 1px solid rgba(200, 168, 122, 0.28);
             color: var(--cream);
             font-family: var(--font-display);
             font-size: 13px;
             font-weight: 300;
             outline: none;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, background 0.2s;
+            box-shadow: 0 0 0 0 rgba(200,168,122,0);
         }
 
         #search-input::placeholder {
-            color: rgba(200, 168, 122, 0.22);
-            font-style: italic;
+            color: rgba(200, 168, 122, 0.5);
+            font-style: normal;
+            letter-spacing: 0.3px;
         }
 
         #search-input:focus {
-            border-color: rgba(200, 168, 122, 0.44);
+            border-color: rgba(200, 168, 122, 0.55);
+            background: rgba(245, 237, 216, 0.09);
+            box-shadow: 0 0 0 3px rgba(200,168,122,0.08);
         }
 
         #search-results {
@@ -1239,6 +1247,46 @@
             margin-left: auto;
             flex-shrink: 0;
             animation: pulse-dot 1.2s ease-in-out infinite;
+        }
+
+        /* Queue section label ("next in queue") */
+        .queue-section-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 0 4px;
+        }
+        .queue-section-label span {
+            font-family: var(--font-mono);
+            font-size: 8px;
+            color: rgba(200,168,122,0.38);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .q-sep-line {
+            flex: 1;
+            height: 1px;
+            background: rgba(200,168,122,0.12);
+        }
+        .queue-item.queued {
+            opacity: 0.72;
+        }
+        .queue-item.queued:hover {
+            opacity: 1;
+        }
+        /* Context menu hover */
+        #track-ctx-menu > div:hover {
+            background: rgba(200,168,122,0.1);
+        }
+        /* Search section header */
+        .search-section-lbl {
+            font-family: var(--font-mono);
+            font-size: 8px;
+            color: rgba(200,168,122,0.38);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 8px 2px 4px;
         }
 
         @keyframes pulse-dot {
@@ -2000,6 +2048,8 @@
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
         }
     </style>
+    <!-- Spotify Web Playback SDK — enables in-browser audio without external Spotify app -->
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
 </head>
 
 <body>
@@ -2008,6 +2058,51 @@
     <div id="room-glow"></div>
     <div id="cursor"></div>
 
+    <!-- ── SESSION NAME MODAL (shown after Spotify link) ────────────────── -->
+    <div id="session-name-overlay" style="
+        display:none; position:fixed; inset:0; z-index:9999;
+        background:rgba(16,9,3,0.82); backdrop-filter:blur(12px);
+        align-items:center; justify-content:center;
+    ">
+        <div style="
+            background:rgba(28,16,6,0.96); border:1px solid rgba(200,168,122,0.22);
+            border-radius:24px; padding:36px 32px; max-width:340px; width:90%;
+            box-shadow:0 24px 64px rgba(0,0,0,0.6); text-align:center;
+        ">
+            <div style="font-size:26px; margin-bottom:12px;">✦</div>
+            <h2 style="font-family:var(--font-display); font-size:18px; font-weight:400;
+                color:var(--cream); margin:0 0 8px;">what should we call you?</h2>
+            <p style="font-family:var(--font-mono); font-size:10px; color:rgba(200,168,122,0.5);
+                letter-spacing:1.5px; margin:0 0 24px;">your display name for this session</p>
+            <input id="session-name-input" type="text" maxlength="30"
+                placeholder="enter your name…"
+                style="width:100%; padding:11px 16px; border-radius:12px;
+                    background:rgba(245,237,216,0.05); border:1px solid rgba(200,168,122,0.2);
+                    color:var(--cream); font-family:var(--font-display); font-size:14px;
+                    font-weight:300; outline:none; box-sizing:border-box; margin-bottom:16px;
+                    text-align:center;"
+            />
+            <button id="session-name-confirm" style="
+                width:100%; padding:12px; border-radius:12px; border:none; cursor:pointer;
+                background:linear-gradient(135deg,rgba(200,123,110,0.6),rgba(140,90,58,0.6));
+                color:var(--cream); font-family:var(--font-mono); font-size:11px;
+                letter-spacing:2px; text-transform:uppercase;
+                transition:opacity 0.2s;
+            ">join the room ›</button>
+        </div>
+    </div>
+
+    <!-- ── ROOM TOAST (replaces browser alert for errors) ───────────────── -->
+    <div id="room-toast" style="
+        display:none; position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
+        z-index:9998; background:rgba(28,16,6,0.94); border:1px solid rgba(200,123,110,0.4);
+        border-radius:14px; padding:12px 20px; font-family:var(--font-display);
+        font-size:13px; font-weight:300; color:rgba(245,237,216,0.9);
+        box-shadow:0 8px 32px rgba(0,0,0,0.5); max-width:340px; text-align:center;
+        backdrop-filter:blur(16px);
+    "></div>
+
+
     <div id="app">
 
         <!-- ═══════════ NAV ═══════════ -->
@@ -2015,7 +2110,7 @@
             <a href="/rooms" style="text-decoration:none;"><span class="nav-logo">M</span></a>
             <div class="nav-sep"></div>
             <span class="nav-room" id="room-name-display">sunday jazz hour</span>
-            <span class="nav-listeners" id="listener-count">· 5 listening</span>
+            <span class="nav-listeners" id="listener-count">· 1 listening</span>
             <div class="nav-right">
                 <!-- Spotify -->
                 <button class="btn-glass btn-icon" id="spotify-btn" title="Link to Spotify" onclick="linkSpotify()">
@@ -2082,93 +2177,8 @@
         <!-- ═══════════ STAGE ═══════════ -->
         <div id="stage">
 
-            <!-- AVATARS -->
-            <div class="av-node" style="top:20%;left:calc(50% - 270px);" data-av="av1">
-                <div class="av-circle" style="width:46px;height:46px;background:rgba(200,123,110,0.22);">
-                    MJ<div class="av-online"></div>
-                </div>
-                <span class="av-name">maya_j</span>
-                <span class="av-reaction">♥</span>
-                <div class="av-reaction-picker">
-                    <button class="av-rxn-btn" data-emoji="♥" data-label="hearts">♥</button>
-                    <button class="av-rxn-btn" data-emoji="✦" data-label="sparkles">✦</button>
-                    <button class="av-rxn-btn" data-emoji="♪" data-label="music notes">♪</button>
-                    <button class="av-rxn-btn" data-emoji="✿" data-label="flowers">✿</button>
-                    <button class="av-rxn-btn" data-emoji="◈" data-label="vibes">◈</button>
-                </div>
-                <div class="rx-toast" id="toast-av1">
-                    <span class="rx-toast-emoji" id="toast-emoji-av1">♥</span>
-                    <span class="rx-toast-text" id="toast-text-av1">you sent hearts!</span>
-                </div>
-            </div>
-            <div class="av-node" style="top:46%;left:calc(50% - 295px);" data-av="av2">
-                <div class="av-circle" style="width:38px;height:38px;background:rgba(90,82,72,0.3);">
-                    AR<div class="av-online"></div>
-                </div>
-                <span class="av-name">arjun_k</span>
-                <span class="av-reaction">✦</span>
-                <div class="av-reaction-picker">
-                    <button class="av-rxn-btn" data-emoji="♥" data-label="hearts">♥</button>
-                    <button class="av-rxn-btn" data-emoji="✦" data-label="sparkles">✦</button>
-                    <button class="av-rxn-btn" data-emoji="♪" data-label="music notes">♪</button>
-                    <button class="av-rxn-btn" data-emoji="✿" data-label="flowers">✿</button>
-                    <button class="av-rxn-btn" data-emoji="◈" data-label="vibes">◈</button>
-                </div>
-                <div class="rx-toast" id="toast-av2">
-                    <span class="rx-toast-emoji" id="toast-emoji-av2">♥</span>
-                    <span class="rx-toast-text" id="toast-text-av2">you sent hearts!</span>
-                </div>
-            </div>
-            <div class="av-node" style="top:67%;left:calc(50% - 265px);" data-av="av3">
-                <div class="av-circle" style="width:36px;height:36px;background:rgba(140,90,58,0.28);">SL</div>
-                <span class="av-name">sol_w</span>
-                <span class="av-reaction">♪</span>
-                <div class="av-reaction-picker">
-                    <button class="av-rxn-btn" data-emoji="♥" data-label="hearts">♥</button>
-                    <button class="av-rxn-btn" data-emoji="✦" data-label="sparkles">✦</button>
-                    <button class="av-rxn-btn" data-emoji="♪" data-label="music notes">♪</button>
-                    <button class="av-rxn-btn" data-emoji="✿" data-label="flowers">✿</button>
-                    <button class="av-rxn-btn" data-emoji="◈" data-label="vibes">◈</button>
-                </div>
-                <div class="rx-toast" id="toast-av3">
-                    <span class="rx-toast-emoji" id="toast-emoji-av3">♥</span>
-                    <span class="rx-toast-text" id="toast-text-av3">you sent hearts!</span>
-                </div>
-            </div>
-            <div class="av-node" style="top:20%;right:calc(50% - 270px);" data-av="av4">
-                <div class="av-circle" style="width:44px;height:44px;background:rgba(200,123,110,0.2);">
-                    PN<div class="av-online"></div>
-                </div>
-                <span class="av-name">priya_n</span>
-                <span class="av-reaction">♥</span>
-                <div class="av-reaction-picker">
-                    <button class="av-rxn-btn" data-emoji="♥" data-label="hearts">♥</button>
-                    <button class="av-rxn-btn" data-emoji="✦" data-label="sparkles">✦</button>
-                    <button class="av-rxn-btn" data-emoji="♪" data-label="music notes">♪</button>
-                    <button class="av-rxn-btn" data-emoji="✿" data-label="flowers">✿</button>
-                    <button class="av-rxn-btn" data-emoji="◈" data-label="vibes">◈</button>
-                </div>
-                <div class="rx-toast" id="toast-av4">
-                    <span class="rx-toast-emoji" id="toast-emoji-av4">♥</span>
-                    <span class="rx-toast-text" id="toast-text-av4">you sent hearts!</span>
-                </div>
-            </div>
-            <div class="av-node" style="top:67%;right:calc(50% - 265px);" data-av="av5">
-                <div class="av-circle" style="width:34px;height:34px;background:rgba(90,82,72,0.26);">KW</div>
-                <span class="av-name">kw</span>
-                <span class="av-reaction">✿</span>
-                <div class="av-reaction-picker">
-                    <button class="av-rxn-btn" data-emoji="♥" data-label="hearts">♥</button>
-                    <button class="av-rxn-btn" data-emoji="✦" data-label="sparkles">✦</button>
-                    <button class="av-rxn-btn" data-emoji="♪" data-label="music notes">♪</button>
-                    <button class="av-rxn-btn" data-emoji="✿" data-label="flowers">✿</button>
-                    <button class="av-rxn-btn" data-emoji="◈" data-label="vibes">◈</button>
-                </div>
-                <div class="rx-toast" id="toast-av5">
-                    <span class="rx-toast-emoji" id="toast-emoji-av5">♥</span>
-                    <span class="rx-toast-text" id="toast-text-av5">you sent hearts!</span>
-                </div>
-            </div>
+            <!-- AVATARS — populated dynamically by room-presence logic -->
+            <div id="av-stage" aria-label="Room participants"></div>
 
             <!-- ═══════════ CD PLAYER ═══════════ -->
             <div id="player-wrap">
@@ -2267,34 +2277,9 @@
             <!-- QUEUE DRAWER -->
             <div id="queue-drawer">
                 <span class="drawer-label">queue</span>
-                <div class="queue-item now-playing">
-                    <div class="q-art" style="background:linear-gradient(135deg,#C87B6E,#1E1208);"></div>
-                    <div>
-                        <div class="q-title">Clair de Lune</div>
-                        <div class="q-artist">Debussy</div>
-                    </div>
-                    <div class="q-playing-dot"></div>
-                </div>
-                <div class="queue-item">
-                    <div class="q-art" style="background:linear-gradient(135deg,#5A5248,#C87B6E);"></div>
-                    <div>
-                        <div class="q-title">Nocturne op.9 no.2</div>
-                        <div class="q-artist">Chopin</div>
-                    </div>
-                </div>
-                <div class="queue-item">
-                    <div class="q-art" style="background:linear-gradient(135deg,#C87B6E,#C8A87A);"></div>
-                    <div>
-                        <div class="q-title">Gymnopédie No.1</div>
-                        <div class="q-artist">Satie</div>
-                    </div>
-                </div>
-                <div class="queue-item">
-                    <div class="q-art" style="background:linear-gradient(135deg,#C8A87A,#5A5248);"></div>
-                    <div>
-                        <div class="q-title">Moonlight Sonata</div>
-                        <div class="q-artist">Beethoven</div>
-                    </div>
+                <div id="queue-items">
+                    <!-- populated by JS when tracks are played/added -->
+                    <div style="padding:12px 4px; color:rgba(200,168,122,0.3); font-family:var(--font-mono); font-size:9px; letter-spacing:1.5px; text-transform:uppercase;">no tracks queued yet</div>
                 </div>
             </div>
 
@@ -2428,18 +2413,7 @@
             <div id="chat-panel">
                 <span id="chat-label">room chat</span>
                 <div id="chat-messages" class="glass-deep">
-                    <div class="chat-msg">
-                        <span class="chat-user">maya_j</span>
-                        <div class="chat-bubble">this song is everything ✦</div>
-                    </div>
-                    <div class="chat-msg">
-                        <span class="chat-user">arjun_k</span>
-                        <div class="chat-bubble">add gymnopédie after this?</div>
-                    </div>
-                    <div class="chat-msg">
-                        <span class="chat-user">sol_w</span>
-                        <div class="chat-bubble">already in the queue ♥</div>
-                    </div>
+                    <!-- messages appear here as users chat -->
                 </div>
                 <div id="chat-input-row">
                     <input id="chat-input" type="text" placeholder="say something…" maxlength="160" />
@@ -2600,12 +2574,8 @@
                     <button class="btn-glass btn-pill" style="font-size:10px; letter-spacing:1px; padding:6px 12px; height: 32px;" onclick="resetBouquet()">reset bouquet</button>
                     <div style="display:flex;align-items:center;gap:10px;">
                         <label style="font-family:var(--font-mono);font-size:9px;color:rgba(200,168,122,0.42);letter-spacing:2px;text-transform:uppercase;white-space:nowrap;">send to</label>
-                        <select class="recipient-select" style="flex:1; height: 32px;">
-                            <option>maya_j</option>
-                            <option>arjun_k</option>
-                            <option>sol_w</option>
-                            <option>priya_n</option>
-                            <option>kw</option>
+                        <select class="recipient-select" id="bouquet-recipient" style="flex:1; height: 32px;">
+                            <option value="">— no one else in room —</option>
                         </select>
                     </div>
                 </div>
@@ -2669,12 +2639,8 @@
                         <span
                             style="font-family:var(--font-mono);font-size:8px;color:rgba(200,168,122,0.38);letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:6px;">send
                             to</span>
-                        <select class="recipient-select" style="width:100%;">
-                            <option>maya_j</option>
-                            <option>arjun_k</option>
-                            <option>sol_w</option>
-                            <option>priya_n</option>
-                            <option>kw</option>
+                        <select class="recipient-select" id="card-recipient" style="width:100%;">
+                            <option value="">— no one else in room —</option>
                         </select>
                     </div>
                 </div>
@@ -2691,34 +2657,9 @@
                 <span class="panel-title">Video Presence</span>
                 <div class="panel-close" onclick="closePanel('video-panel')">✕</div>
             </div>
-            <div class="video-grid">
-                <div class="video-bubble active" style="background:rgba(200,123,110,0.2);">
-                    <span class="initials">MJ</span>
-                    <div class="online-dot"></div>
-                    <span class="video-name">maya_j</span>
-                </div>
-                <div class="video-bubble active" style="background:rgba(90,82,72,0.25);">
-                    <span class="initials">AR</span>
-                    <div class="online-dot"></div>
-                    <span class="video-name">arjun_k</span>
-                </div>
-                <div class="video-bubble" style="background:rgba(44,26,10,0.5);">
-                    <span class="initials" style="color:rgba(200,168,122,0.25);">—</span>
-                    <span class="video-name">you</span>
-                </div>
-                <div class="video-bubble" style="background:rgba(140,90,58,0.2);">
-                    <span class="initials">SL</span>
-                    <span class="video-name">sol_w</span>
-                </div>
-                <div class="video-bubble active" style="background:rgba(200,123,110,0.15);">
-                    <span class="initials">PN</span>
-                    <div class="online-dot"></div>
-                    <span class="video-name">priya_n</span>
-                </div>
-                <div class="video-bubble" style="background:rgba(90,82,72,0.2);">
-                    <span class="initials">KW</span>
-                    <span class="video-name">kw</span>
-                </div>
+            <!-- video grid — populated dynamically from room presence -->
+            <div class="video-grid" id="video-grid-bubbles">
+                <!-- JS fills this from the presence listener list -->
             </div>
             <div class="video-toggle-row">
                 <span class="video-toggle-label">your camera</span>
@@ -3007,34 +2948,136 @@
         // ══════════════════════════════════════════════════════
         //  DISC ROTATION
         // ══════════════════════════════════════════════════════
-        let playing = false, angle = 0, progress = 0.346;
+        let playing = false, angle = 0;
         const disc = document.getElementById('disc');
         const playIcon = document.getElementById('play-icon');
         const progFill = document.getElementById('progress-fill');
         const timeCur = document.getElementById('time-current');
-        const TOTAL_SEC = 302;
 
         function fmtTime(s) {
-            return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+            const sec = Math.max(0, Math.floor(s));
+            return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
         }
 
+        // spinInterval ONLY rotates the disc — progress/time is owned by SDK polling below
         const spinInterval = setInterval(() => {
             if (!playing) return;
             angle = (angle + 0.55) % 360;
             disc.style.transform = `rotate(${angle}deg)`;
-            progress = Math.min(progress + 0.00022, 1);
-            progFill.style.width = (progress * 100) + '%';
-            timeCur.textContent = fmtTime(progress * TOTAL_SEC);
         }, 16);
 
         document.getElementById('play-btn').addEventListener('click', () => {
-            playing = !playing;
-            disc.classList.toggle('playing', playing);
-            document.getElementById('needle').style.transform = playing ? 'rotate(-38deg)' : 'rotate(-55deg)';
-            if (!playing) flattenWaveform();
-            playIcon.innerHTML = playing
+            // Toggle Spotify SDK playback if available, else fallback to local state
+            if (window._spotifyPlayer) {
+                window._spotifyPlayer.togglePlay();
+            } else {
+                playing = !playing;
+                disc.classList.toggle('playing', playing);
+                document.getElementById('needle').style.transform = playing ? 'rotate(-38deg)' : 'rotate(-55deg)';
+                if (!playing) flattenWaveform();
+                playIcon.innerHTML = playing
+                    ? '<polygon points="5,3 13,8 5,13" fill="#F5EDD8"/>'
+                    : '<rect x="4" y="3" width="3" height="10" rx="1" fill="#F5EDD8"/><rect x="9" y="3" width="3" height="10" rx="1" fill="#F5EDD8"/>';
+            }
+        });
+
+        // Update the UP NEXT pill — manual queue has priority over search-results list
+        function updateUpNext(currentSearchIdx) {
+            const pill = document.getElementById('next-pill-title');
+            if (!pill) return;
+            const mq = window._manualQueue || [];
+            if (mq.length > 0) {
+                pill.textContent = mq[0].title;
+            } else {
+                const q = window._trackQueue || [];
+                const next = q[currentSearchIdx + 1];
+                pill.textContent = next ? next.name : '—';
+            }
+        }
+
+        document.getElementById('prev-btn').addEventListener('click', () => {
+            const q = window._trackQueue || [];
+            const idx = window._queueIdx ?? -1;
+            if (q.length && idx > 0) {
+                window._queueIdx = idx - 1;
+                const t = q[window._queueIdx];
+                const artist = t.artists?.[0]?.name || '';
+                const art = t.album?.images?.[0]?.url || '';
+                playSpotifyTrack(t.uri, t.name, artist, art);
+                updateUpNext(window._queueIdx);
+            }
+        });
+        document.getElementById('next-btn').addEventListener('click', () => {
+            const mq = window._manualQueue || [];
+            if (mq.length > 0) {
+                // Consume first entry in manual queue
+                const next = mq.shift();
+                // Remove its matching DOM row from queue drawer
+                const qItems = document.getElementById('queue-items');
+                if (qItems) {
+                    const rows = qItems.querySelectorAll('.queue-item.queued');
+                    if (rows.length > 0) rows[0].remove();
+                    // If queue is now empty, remove separator too
+                    if (mq.length === 0) {
+                        const sep = qItems.querySelector('.queue-section-label');
+                        if (sep) sep.remove();
+                    }
+                }
+                playSpotifyTrack(next.uri || '', next.title, next.artist, next.art);
+                updateUpNext(window._queueIdx ?? -1);
+            } else {
+                // Fall back to search results list
+                const q = window._trackQueue || [];
+                const idx = window._queueIdx ?? -1;
+                if (q.length && idx < q.length - 1) {
+                    window._queueIdx = idx + 1;
+                    const t = q[window._queueIdx];
+                    const artist = t.artists?.[0]?.name || '';
+                    const art = t.album?.images?.[0]?.url || '';
+                    playSpotifyTrack(t.uri, t.name, artist, art);
+                    updateUpNext(window._queueIdx);
+                }
+            }
+        });
+
+        // Volume slider — wired to Spotify SDK
+        const volSlider = document.getElementById('vol-slider');
+        volSlider.addEventListener('input', () => {
+            const vol = parseInt(volSlider.value, 10) / 100;
+            if (window._spotifyPlayer) window._spotifyPlayer.setVolume(vol);
+        });
+
+        // Progress polling — update bar + timestamps from SDK every second
+        setInterval(async () => {
+            if (!window._spotifyPlayer) return;
+            const state = await window._spotifyPlayer.getCurrentState();
+            if (!state) return;
+            const pos = state.position;        // ms
+            const dur = state.duration || 1;  // ms
+            const pct = pos / dur;
+            progFill.style.width = (pct * 100) + '%';
+            timeCur.textContent = fmtTime(pos / 1000);
+            // Sync local playing flag
+            const isPaused = state.paused;
+            playing = !isPaused;
+            disc.classList.toggle('playing', !isPaused);
+            document.getElementById('needle').style.transform = isPaused ? 'rotate(-55deg)' : 'rotate(-38deg)';
+            playIcon.innerHTML = isPaused
                 ? '<polygon points="5,3 13,8 5,13" fill="#F5EDD8"/>'
                 : '<rect x="4" y="3" width="3" height="10" rx="1" fill="#F5EDD8"/><rect x="9" y="3" width="3" height="10" rx="1" fill="#F5EDD8"/>';
+            // Update total time display from SDK
+            const totalEl = document.querySelector('#progress-times .time-lbl:last-child');
+            if (totalEl) totalEl.textContent = fmtTime(dur / 1000);
+        }, 1000);
+
+        // Click on progress bar to seek
+        document.getElementById('progress-bar').addEventListener('click', async (e) => {
+            if (!window._spotifyPlayer) return;
+            const state = await window._spotifyPlayer.getCurrentState();
+            if (!state) return;
+            const bar = e.currentTarget.getBoundingClientRect();
+            const pct = (e.clientX - bar.left) / bar.width;
+            window._spotifyPlayer.seek(Math.floor(pct * state.duration));
         });
 
         // Cover art helper — call this when Spotify/YouTube SDK provides artwork URL
@@ -3154,7 +3197,10 @@
                 }
                 
                 if (tracks && tracks.length > 0) {
-                    renderTracks(tracks.map(i => i.track));
+                    // Prepend section label before rendering
+                    searchResults.innerHTML = `<div class="search-section-lbl">recently played</div>`;
+                    const trackList = tracks.map(i => i.track).filter(Boolean);
+                    renderTracks(trackList);
                 } else {
                     searchResults.innerHTML = `<div class="search-empty">No recently played tracks found. Try searching!</div>`;
                 }
@@ -3172,20 +3218,120 @@
             } catch (err) { console.error(err); }
         }
 
+        // ── Context-menu state ───────────────────────────────────────────────
+        let _ctxTrack = null; // track being right-clicked
+        const ctxMenu = document.createElement('div');
+        ctxMenu.id = 'track-ctx-menu';
+        ctxMenu.style.cssText = `
+            position:fixed; z-index:9999; background:rgba(20,11,4,0.97);
+            border:1px solid rgba(200,168,122,0.2); border-radius:12px;
+            padding:6px 0; min-width:170px; box-shadow:0 8px 32px rgba(0,0,0,0.6);
+            backdrop-filter:blur(18px); display:none; font-family:var(--font-display);
+        `;
+        ctxMenu.innerHTML = `
+            <div id="ctx-play-now" style="padding:10px 16px;cursor:pointer;font-size:13px;font-weight:300;color:rgba(245,237,216,0.85);">▶ &nbsp; play now</div>
+            <div id="ctx-add-queue" style="padding:10px 16px;cursor:pointer;font-size:13px;font-weight:300;color:rgba(200,168,122,0.75);">+ &nbsp; add to queue</div>
+        `;
+        document.body.appendChild(ctxMenu);
+        document.addEventListener('click', () => { ctxMenu.style.display = 'none'; });
+        document.addEventListener('contextmenu', () => { ctxMenu.style.display = 'none'; }, true);
+
+        ctxMenu.querySelector('#ctx-play-now').addEventListener('click', () => {
+            if (_ctxTrack) playSpotifyTrack(_ctxTrack.uri, _ctxTrack.name, _ctxTrack.artist, _ctxTrack.art);
+            ctxMenu.style.display = 'none';
+        });
+        ctxMenu.querySelector('#ctx-add-queue').addEventListener('click', async () => {
+            if (!_ctxTrack) return;
+            ctxMenu.style.display = 'none';
+            // Call server to add to Spotify queue
+            try {
+                const res = await fetch('/api/spotify/queue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uri: _ctxTrack.uri })
+                });
+                const data = await res.json();
+                if (data.error) { showRoomToast(data.error); return; }
+                addToQueueDrawer(_ctxTrack.name, _ctxTrack.artist, _ctxTrack.art, _ctxTrack.uri);
+                showRoomToast('Added to queue ♪');
+            } catch (e) { showRoomToast('Could not add to queue'); }
+        });
+
+        // Queue an upcoming track in the drawer (not now-playing, shown after separator)
+        window._manualQueue = window._manualQueue || [];
+
+        function addToQueueDrawer(title, artist, art, uri) {
+            // Track in JS array for next-btn to consume
+            window._manualQueue.push({ title, artist, art, uri: uri || '' });
+
+            const qItems = document.getElementById('queue-items');
+            if (!qItems) return;
+            const empty = qItems.querySelector('.queue-empty-msg');
+            if (empty) empty.remove();
+            // Add separator once
+            if (!qItems.querySelector('.queue-section-label')) {
+                const sep = document.createElement('div');
+                sep.className = 'queue-section-label';
+                sep.innerHTML = `<span>next in queue</span><div class="q-sep-line"></div>`;
+                qItems.appendChild(sep);
+            }
+            const item = document.createElement('div');
+            item.className = 'queue-item queued';
+            const artStyle = art ? `background-image:url('${art}'); background-size:cover;` : `background:linear-gradient(135deg,#C87B6E,#5A5248);`;
+            item.innerHTML = `
+                <div class="q-art" style="${artStyle}"></div>
+                <div><div class="q-title">${title}</div><div class="q-artist">${artist}</div></div>
+            `;
+            qItems.appendChild(item);
+
+            // UP NEXT pill = first song in the manual queue (highest priority)
+            const pill = document.getElementById('next-pill-title');
+            if (pill) pill.textContent = window._manualQueue[0].title;
+        }
+
         function renderTracks(tracks) {
+            window._lastSearchTracks = tracks; // save for UP NEXT auto-set
+            window._trackQueue = tracks;        // used by next/prev button navigation
             if (!tracks || tracks.length === 0) {
                 searchResults.innerHTML = `<div style="padding:20px; color:rgba(255,255,255,0.4); font-size:12px; text-align:center;">No tracks found</div>`;
                 return;
             }
-            searchResults.innerHTML = tracks.map(t => `
-                <div class="search-result" onclick="playSpotifyTrack('${t.uri}', '${t.name.replace(/'/g, "\\'")}', '${t.artists[0].name.replace(/'/g, "\\'")}', '${t.album.images[0]?.url}')">
-                    <div class="sr-art" style="background-image:url('${t.album.images[1]?.url || t.album.images[0]?.url}'); background-size:cover;"></div>
+            // Remove non-label children only (preserve section label set by loadRecentSpotify)
+            [...searchResults.children].forEach(c => { if (!c.classList.contains('search-section-lbl')) c.remove(); });
+            tracks.forEach((t, idx) => {
+                const artUrl = t.album?.images?.[1]?.url || t.album?.images?.[0]?.url || '';
+                const artLarge = t.album?.images?.[0]?.url || artUrl;
+                const artistName = t.artists?.[0]?.name || 'Unknown';
+                const div = document.createElement('div');
+                div.className = 'search-result';
+                div.dataset.idx = idx;
+                div.innerHTML = `
+                    <div class="sr-art" style="background-image:url('${artUrl}'); background-size:cover;"></div>
                     <div>
                         <div class="sr-title">${t.name}</div>
-                        <div class="sr-artist">${t.artists[0].name}</div>
+                        <div class="sr-artist">${artistName}</div>
                     </div>
-                </div>
-            `).join('');
+                `;
+                // Left-click = play
+                div.addEventListener('click', () => {
+                    window._queueIdx = idx; // track position for next/prev
+                    playSpotifyTrack(t.uri, t.name, artistName, artLarge);
+                    updateUpNext(idx);
+                });
+                // Right-click = context menu
+                div.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    _ctxTrack = { uri: t.uri, name: t.name, artist: artistName, art: artLarge };
+                    ctxMenu.style.display = 'block';
+                    // Position near cursor, keep within viewport
+                    const x = Math.min(e.clientX, window.innerWidth - 180);
+                    const y = Math.min(e.clientY, window.innerHeight - 90);
+                    ctxMenu.style.left = x + 'px';
+                    ctxMenu.style.top = y + 'px';
+                    return false;
+                });
+                searchResults.appendChild(div);
+            });
         }
 
         async function playSpotifyTrack(uri, title, artist, art) {
@@ -3193,13 +3339,14 @@
                 const res = await fetch('/api/spotify/play', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ uri })
+                    body: JSON.stringify({ uri, device_id: window.spotifyDeviceId || undefined })
                 });
                 const data = await res.json();
                 if (data.error) {
-                    alert(data.error);
+                    // Show inline error toast instead of browser alert
+                    showRoomToast(data.error);
                 } else {
-                    queueTrack(title, artist, art);
+                    queueTrack(title, artist, art, true); // now playing
                     // Sync playing state
                     playing = true;
                     document.getElementById('play-btn').classList.add('playing');
@@ -3208,16 +3355,30 @@
             } catch (err) { console.error(err); }
         }
 
-        function queueTrack(title, artist, art) {
-            const qd = document.getElementById('queue-drawer');
+        function queueTrack(title, artist, art, isNowPlaying = false) {
+            const qItems = document.getElementById('queue-items');
+            if (!qItems) return;
+            // Clear 'no tracks yet' placeholder if present
+            const empty = qItems.querySelector('[style*="no tracks"]');
+            if (empty) empty.remove();
+
             const item = document.createElement('div');
-            item.className = 'queue-item';
+            item.className = 'queue-item' + (isNowPlaying ? ' now-playing' : '');
             const artStyle = art ? `background-image:url('${art}'); background-size:cover;` : `background:linear-gradient(135deg,#C87B6E,#5A5248);`;
             item.innerHTML = `
                 <div class="q-art" style="${artStyle}"></div>
                 <div><div class="q-title">${title}</div><div class="q-artist">${artist}</div></div>
+                ${isNowPlaying ? '<div class="q-playing-dot"></div>' : ''}
             `;
-            qd.appendChild(item);
+            // Mark any previous now-playing as regular
+            if (isNowPlaying) {
+                qItems.querySelectorAll('.queue-item.now-playing').forEach(el => {
+                    el.classList.remove('now-playing');
+                    const dot = el.querySelector('.q-playing-dot');
+                    if (dot) dot.remove();
+                });
+            }
+            qItems.appendChild(item);
         }
 
         // Trigger recent tracks on first open
@@ -3249,82 +3410,88 @@
         chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendChatMessage(); });
 
         // ══════════════════════════════════════════════════════
-        //  AVATAR REACTIONS (ambient)
+        //  AVATAR REACTIONS — react on dynamically generated avatars
         // ══════════════════════════════════════════════════════
-        // ── Hover reaction picker ──────────────────────────────────────────────────
-        const avNodes = document.querySelectorAll('.av-node');
         const rxns = ['♥', '✦', '♪', '✿', '◈'];
         const emojiLabels = { '♥': 'hearts', '✦': 'sparkles', '♪': 'music notes', '✿': 'flowers', '◈': 'vibes' };
 
-        // Ambient reactions (random, while playing)
+        // Utility: wire up reaction pickers on an av-node
+        function wireAvNode(avNode) {
+            avNode.querySelectorAll('.av-rxn-btn').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    e.stopPropagation();
+                    const picker = avNode.querySelector('.av-reaction-picker');
+                    if (picker) {
+                        picker.style.opacity = '0'; picker.style.pointerEvents = 'none';
+                        setTimeout(() => { picker.style.opacity = ''; picker.style.pointerEvents = ''; }, 500);
+                    }
+                    const avId = avNode.dataset.av;
+                    const emoji = btn.dataset.emoji;
+                    const label = btn.dataset.label;
+                    const username = avNode.querySelector('.av-name')?.textContent || 'someone';
+
+                    // Flash reaction above avatar
+                    const rxnSpan = avNode.querySelector('.av-reaction');
+                    if (rxnSpan) { rxnSpan.textContent = emoji; }
+                    avNode.classList.add('reacting');
+                    setTimeout(() => avNode.classList.remove('reacting'), 1500);
+
+                    // Toast below their avatar
+                    const toast = avNode.querySelector('.rx-toast');
+                    const toastEmoji = avNode.querySelector('.rx-toast-emoji');
+                    const toastText = avNode.querySelector('.rx-toast-text');
+                    if (toast && toastEmoji && toastText) {
+                        toastEmoji.textContent = emoji;
+                        toastText.textContent = 'you sent ' + label + '!';
+                        toast.classList.add('show');
+                        setTimeout(() => toast.classList.remove('show'), 2800);
+                    }
+
+                    // Received notification
+                    const notif = document.getElementById('received-reaction-notif');
+                    const notifText = document.getElementById('notif-text');
+                    const notifHearts = document.getElementById('notif-hearts');
+                    if (notif && notifText && notifHearts) {
+                        notifText.textContent = username + ' sent you ' + label + '!';
+                        notifHearts.innerHTML = [emoji, emoji, emoji].map(em =>
+                            `<span style="font-size:18px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5));">${em}</span>`
+                        ).join('');
+                        notif.classList.add('show');
+                        clearTimeout(notif._hideTimer);
+                        notif._hideTimer = setTimeout(() => notif.classList.remove('show'), 3500);
+                    }
+
+                    // Burst floating emoji
+                    const rect = avNode.getBoundingClientRect();
+                    const cx = rect.left + rect.width / 2;
+                    const cy = rect.top + rect.height / 2;
+                    for (let i = 0; i < 4; i++) {
+                        const pop = document.createElement('div');
+                        pop.className = 'heart-pop';
+                        pop.style.left = (cx + (Math.random() - 0.5) * 28) + 'px';
+                        pop.style.top = (cy + (Math.random() - 0.5) * 28) + 'px';
+                        pop.style.animationDelay = (i * 0.08) + 's';
+                        pop.textContent = emoji;
+                        document.body.appendChild(pop);
+                        setTimeout(() => pop.remove(), 900);
+                    }
+                });
+            });
+        }
+
+        // Ambient reactions — fires on whatever avNodes are currently in the stage
         setInterval(() => {
             if (!playing) return;
+            const avNodes = document.querySelectorAll('#av-stage .av-node');
+            if (!avNodes.length) return;
             const av = avNodes[Math.floor(Math.random() * avNodes.length)];
             const rxn = rxns[Math.floor(Math.random() * rxns.length)];
-            av.querySelector('.av-reaction').textContent = rxn;
+            const rxnSpan = av.querySelector('.av-reaction');
+            if (rxnSpan) { rxnSpan.textContent = rxn; }
             av.classList.add('reacting');
             setTimeout(() => av.classList.remove('reacting'), 1400);
         }, 3800);
 
-        // Send reaction on hover-picker click
-        document.querySelectorAll('.av-rxn-btn').forEach(btn => {
-            btn.addEventListener('click', e => {
-                e.stopPropagation();
-                const avNode = btn.closest('.av-node');
-                // Hide picker immediately after reaction sent
-                const picker = avNode.querySelector('.av-reaction-picker');
-                if (picker) {
-                    picker.style.opacity = '0'; picker.style.pointerEvents = 'none';
-                    setTimeout(() => { picker.style.opacity = ''; picker.style.pointerEvents = ''; }, 500);
-                }
-                const avId = avNode.dataset.av;
-                const emoji = btn.dataset.emoji;
-                const label = btn.dataset.label;
-                const username = avNode.querySelector('.av-name').textContent;
-
-                // 1. Flash reaction above their avatar
-                const rxnSpan = avNode.querySelector('.av-reaction');
-                rxnSpan.textContent = emoji;
-                avNode.classList.add('reacting');
-                setTimeout(() => avNode.classList.remove('reacting'), 1500);
-
-                // 2. Show toast at bottom of their avatar
-                const toast = document.getElementById('toast-' + avId);
-                const toastEmoji = document.getElementById('toast-emoji-' + avId);
-                const toastText = document.getElementById('toast-text-' + avId);
-                toastEmoji.textContent = emoji;
-                toastText.textContent = 'you sent ' + label + '!';
-                toast.classList.add('show');
-                setTimeout(() => toast.classList.remove('show'), 2800);
-
-                // Show received-reaction notification in bottom centre (recipient's view)
-                const notif = document.getElementById('received-reaction-notif');
-                const notifText = document.getElementById('notif-text');
-                const notifHearts = document.getElementById('notif-hearts');
-                notifText.textContent = username + ' sent you ' + label + '!';
-                notifHearts.innerHTML = [emoji, emoji, emoji].map(e =>
-                    `<span style="font-size:18px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5));">${e}</span>`
-                ).join('');
-                notif.classList.add('show');
-                clearTimeout(notif._hideTimer);
-                notif._hideTimer = setTimeout(() => notif.classList.remove('show'), 3500);
-
-                // 3. Burst 4 floating hearts from that avatar toward centre
-                const rect = avNode.getBoundingClientRect();
-                const cx = rect.left + rect.width / 2;
-                const cy = rect.top + rect.height / 2;
-                for (let i = 0; i < 4; i++) {
-                    const pop = document.createElement('div');
-                    pop.className = 'heart-pop';
-                    pop.style.left = (cx + (Math.random() - 0.5) * 28) + 'px';
-                    pop.style.top = (cy + (Math.random() - 0.5) * 28) + 'px';
-                    pop.style.animationDelay = (i * 0.08) + 's';
-                    pop.textContent = emoji;
-                    document.body.appendChild(pop);
-                    setTimeout(() => pop.remove(), 900);
-                }
-            });
-        });
 
         // ══════════════════════════════════════════════════════
         //  PANELS
@@ -3608,12 +3775,16 @@
 
         function linkSpotify() {
             if (userHasSpotify) {
-                // If already linked, show notification
-                const toast = document.getElementById('toast-av1');
-                if (toast) {
-                    document.getElementById('toast-text-av1').innerText = "Already linked to Spotify!";
-                    toast.classList.add('visible');
-                    setTimeout(() => toast.classList.remove('visible'), 2000);
+                // Show already-linked message using the global notif bar
+                const notif = document.getElementById('received-reaction-notif');
+                const notifText = document.getElementById('notif-text');
+                const notifHearts = document.getElementById('notif-hearts');
+                if (notif && notifText) {
+                    notifText.textContent = 'Already linked to Spotify!';
+                    if (notifHearts) notifHearts.innerHTML = '<span style="font-size:18px;">🎵</span>';
+                    notif.classList.add('show');
+                    clearTimeout(notif._hideTimer);
+                    notif._hideTimer = setTimeout(() => notif.classList.remove('show'), 2500);
                 }
                 return;
             }
@@ -3628,31 +3799,315 @@
             window.location.href = '/auth/spotify'; 
         }
 
+        // ══════════════════════════════════════════════════════
+        //  IN-APP TOAST (replaces browser alert)
+        // ══════════════════════════════════════════════════════
+        function showRoomToast(msg, durationMs = 3500) {
+            const el = document.getElementById('room-toast');
+            if (!el) return;
+            el.textContent = msg;
+            el.style.display = 'block';
+            clearTimeout(el._hideTimer);
+            el._hideTimer = setTimeout(() => { el.style.display = 'none'; }, durationMs);
+        }
+
+        // ══════════════════════════════════════════════════════
+        //  SPOTIFY WEB PLAYBACK SDK — in-browser audio device
+        // ══════════════════════════════════════════════════════
+        window.spotifyDeviceId = null; // set when SDK is ready
+
+        // Called automatically by the SDK script once it has loaded
+        window.onSpotifyWebPlaybackSDKReady = async () => {
+            try {
+                const tokenRes = await fetch('/auth/spotify/token');
+                if (!tokenRes.ok) return; // user hasn't linked Spotify yet — skip
+                const { access_token } = await tokenRes.json();
+                if (!access_token) return;
+
+                const player = new Spotify.Player({
+                    name: 'Melos Room Player',
+                    getOAuthToken: async cb => {
+                        // Always fetch a fresh token from our backend
+                        const r = await fetch('/auth/spotify/token');
+                        if (r.ok) { const d = await r.json(); cb(d.access_token); }
+                    },
+                    volume: 0.7,
+                });
+
+                player.addListener('ready', ({ device_id }) => {
+                    window.spotifyDeviceId = device_id;
+                    console.log('[Melos] Spotify in-browser player ready, device_id:', device_id);
+                });
+                player.addListener('not_ready', () => { window.spotifyDeviceId = null; });
+
+                player.addListener('player_state_changed', state => {
+                    if (!state) return;
+                    const isPaused = state.paused;
+                    playing = !isPaused;
+                    document.getElementById('play-btn')?.classList.toggle('playing', !isPaused);
+                    document.getElementById('disc')?.classList.toggle('playing', !isPaused);
+                    // Update track info from SDK state
+                    const track = state.track_window?.current_track;
+                    if (track) {
+                        const el = document.getElementById('track-title');
+                        const ea = document.getElementById('track-artist');
+                        if (el) el.textContent = track.name;
+                        if (ea) ea.textContent = track.artists.map(a => a.name).join(', ');
+                        const artEl = document.getElementById('disc-art');
+                        if (artEl && track.album?.images?.[0]?.url) {
+                            artEl.style.backgroundImage = `url('${track.album.images[0].url}')`;
+                            artEl.style.backgroundSize = 'cover';
+                        }
+                    }
+                });
+
+                player.addListener('initialization_error', ({ message }) => console.warn('[Melos SDK]', message));
+                player.addListener('authentication_error', ({ message }) => console.warn('[Melos SDK]', message));
+                player.addListener('account_error', ({ message }) => showRoomToast('Spotify Premium is required for in-browser playback.'));
+
+                player.connect();
+                window._spotifyPlayer = player; // expose for debugging
+            } catch (e) {
+                console.warn('[Melos SDK] Could not init Spotify player:', e.message);
+            }
+        };
+
+        // ══════════════════════════════════════════════════════
+        //  SESSION NAME MODAL (shown after Spotify link)
+        // ══════════════════════════════════════════════════════
+        function showSessionNameModal(prefill) {
+            const overlay = document.getElementById('session-name-overlay');
+            const input = document.getElementById('session-name-input');
+            const btn = document.getElementById('session-name-confirm');
+            if (!overlay || !input || !btn) return;
+
+            input.value = prefill || '';
+            overlay.style.display = 'flex';
+            input.focus();
+
+            function confirm() {
+                const name = input.value.trim();
+                if (!name) { input.style.borderColor = 'rgba(200,123,110,0.7)'; return; }
+                window.sessionDisplayName = name;
+                overlay.style.display = 'none';
+                // Clean URL so modal doesn't re-appear on refresh
+                const url = new URL(window.location.href);
+                url.searchParams.delete('spotifyLinked');
+                window.history.replaceState({}, '', url.toString());
+                // Re-send heartbeat with new display name
+                sendHeartbeat();
+            }
+            btn.onclick = confirm;
+            input.addEventListener('keydown', e => { if (e.key === 'Enter') confirm(); });
+        }
+
         // Initialize on load
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
             initRoomAuth();
+
+            // Check if we just came back from a Spotify link — show name prompt
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('spotifyLinked') === '1') {
+                // Pre-fill with current username from auth
+                let prefillName = '';
+                try {
+                    const meRes = await fetch('/auth/me');
+                    if (meRes.ok) {
+                        const meData = await meRes.json();
+                        prefillName = meData.username || meData.name || '';
+                    }
+                } catch (_) {}
+                showSessionNameModal(prefillName);
+            }
+
+            // Fire presence heartbeat immediately, then every 30 s
+            sendHeartbeat();
+            setInterval(sendHeartbeat, 30000);
+            // Also poll presence every 15 s for updates from other users
+            setInterval(pollPresence, 15000);
         });
 
         // ══════════════════════════════════════════════════════
-        //  HOST DROPDOWN
+        //  ROOM PRESENCE — heartbeat + live avatar/count updates
         // ══════════════════════════════════════════════════════
-        const ROOM_LISTENERS = [
-            { initials: 'MJ', name: 'maya_j', color: 'rgba(200,123,110,0.45)' },
-            { initials: 'AR', name: 'arjun_k', color: 'rgba(90,82,72,0.45)' },
-            { initials: 'SL', name: 'sol_w', color: 'rgba(140,90,58,0.45)' },
-            { initials: 'PN', name: 'priya_n', color: 'rgba(200,123,110,0.38)' },
-            { initials: 'KW', name: 'kw', color: 'rgba(90,82,72,0.38)' },
+
+        // Avatar positions for up to 10 users (5 left, 5 right of centre)
+        const AV_POSITIONS = [
+            { top: '20%',  side: 'left',  offset: '270px' },
+            { top: '46%',  side: 'left',  offset: '295px' },
+            { top: '67%',  side: 'left',  offset: '265px' },
+            { top: '20%',  side: 'right', offset: '270px' },
+            { top: '67%',  side: 'right', offset: '265px' },
+            { top: '33%',  side: 'left',  offset: '310px' },
+            { top: '55%',  side: 'right', offset: '285px' },
+            { top: '78%',  side: 'left',  offset: '250px' },
+            { top: '78%',  side: 'right', offset: '250px' },
+            { top: '33%',  side: 'right', offset: '310px' },
         ];
+
+        const AV_SIZES = [46, 38, 36, 44, 34, 40, 38, 34, 36, 42];
+
+        // Build a single av-node element from listener data
+        function buildAvNode(listener, index) {
+            const pos = AV_POSITIONS[index % AV_POSITIONS.length];
+            const size = AV_SIZES[index % AV_SIZES.length];
+            const avId = 'av-dyn-' + index;
+            const sideStyle = pos.side === 'left'
+                ? `left:calc(50% - ${pos.offset})`
+                : `right:calc(50% - ${pos.offset})`;
+
+            const el = document.createElement('div');
+            el.className = 'av-node';
+            el.dataset.av = avId;
+            el.style.cssText = `top:${pos.top};${sideStyle};`;
+            el.innerHTML = `
+                <div class="av-circle" style="width:${size}px;height:${size}px;background:${listener.color};">
+                    ${listener.initials}<div class="av-online"></div>
+                </div>
+                <span class="av-name">${listener.username}</span>
+                <span class="av-reaction">♥</span>
+                <div class="av-reaction-picker">
+                    <button class="av-rxn-btn" data-emoji="♥" data-label="hearts">♥</button>
+                    <button class="av-rxn-btn" data-emoji="✦" data-label="sparkles">✦</button>
+                    <button class="av-rxn-btn" data-emoji="♪" data-label="music notes">♪</button>
+                    <button class="av-rxn-btn" data-emoji="✿" data-label="flowers">✿</button>
+                    <button class="av-rxn-btn" data-emoji="◈" data-label="vibes">◈</button>
+                </div>
+                <div class="rx-toast">
+                    <span class="rx-toast-emoji">♥</span>
+                    <span class="rx-toast-text">you sent hearts!</span>
+                </div>
+            `;
+            wireAvNode(el);
+
+            // Also re-wire cursor hover
+            el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+            el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+            return el;
+        }
+
+        // Rebuild video-grid bubbles from listener list
+        function buildVideoGrid(listeners) {
+            const grid = document.getElementById('video-grid-bubbles');
+            if (!grid) return;
+            grid.innerHTML = '';
+            listeners.forEach((l, i) => {
+                const bub = document.createElement('div');
+                bub.className = 'video-bubble active';
+                bub.style.background = l.color;
+                bub.innerHTML = `
+                    <span class="initials">${l.initials}</span>
+                    <div class="online-dot"></div>
+                    <span class="video-name">${l.username}</span>
+                `;
+                grid.appendChild(bub);
+            });
+            // Add "you" slot at end
+            const youBub = document.createElement('div');
+            youBub.className = 'video-bubble';
+            youBub.style.background = 'rgba(44,26,10,0.5)';
+            youBub.innerHTML = `<span class="initials" style="color:rgba(200,168,122,0.25);">—</span><span class="video-name">you</span>`;
+            grid.appendChild(youBub);
+        }
+
+        // Rebuild av-stage from listener list (excludes current user — they're 'you')
+        function buildStageAvatars(listeners) {
+            const stage = document.getElementById('av-stage');
+            if (!stage) return;
+            // We intentionally keep the stage showing OTHER users only
+            // The listeners list omits 'you' since the current user is the one viewing
+            stage.innerHTML = '';
+            // Show up to 10 other listeners
+            const others = listeners.slice(0, 10);
+            others.forEach((l, i) => {
+                stage.appendChild(buildAvNode(l, i));
+            });
+        }
+
+        // Update listener count badge
+        function updateListenerCount(count) {
+            const el = document.getElementById('listener-count');
+            if (el) el.textContent = `· ${count} listening`;
+        }
+
+        // Current listener list (shared across host menu + stage + video)
+        let currentListeners = [];
+
+        function applyPresenceUpdate(listeners) {
+            currentListeners = listeners;
+            // +1 for the current user themselves
+            updateListenerCount(listeners.length + 1);
+            buildStageAvatars(listeners);
+            buildVideoGrid(listeners);
+            populateRecipientDropdowns(listeners);
+        }
+
+        // Populate bouquet + card "send to" dropdowns from live listeners
+        function populateRecipientDropdowns(listeners) {
+            const emptyOpt = '<option value="">— no one else in room —</option>';
+            const opts = listeners.length > 0
+                ? listeners.map(l => `<option value="${l.username}">${l.username}</option>`).join('')
+                : emptyOpt;
+            ['bouquet-recipient', 'card-recipient'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = listeners.length > 0 ? opts : emptyOpt;
+            });
+        }
+
+        // Pull roomId from URL (e.g. ?room=xxx or path segment)
+        function getRoomId() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('room') || params.get('id') || ROOM_NAME || 'default-room';
+        }
+
+        async function sendHeartbeat() {
+            const roomId = getRoomId();
+            try {
+                const res = await fetch('/api/room/heartbeat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    // Pass sessionDisplayName if the user set one in the name modal
+                    body: JSON.stringify({ roomId, displayName: window.sessionDisplayName || undefined })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    // data.listeners = OTHER users only (server excludes the caller)
+                    // data.self = the calling user's own presence record
+                    applyPresenceUpdate(data.listeners || []);
+                }
+            } catch (err) {
+                // Silently ignore network errors — presence is best-effort
+                console.warn('[Presence] Heartbeat failed:', err.message);
+            }
+        }
+
+        async function pollPresence() {
+            const roomId = getRoomId();
+            try {
+                const res = await fetch(`/api/room/presence?room=${encodeURIComponent(roomId)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    applyPresenceUpdate(data.listeners || []);
+                }
+            } catch (err) {
+                console.warn('[Presence] Poll failed:', err.message);
+            }
+        }
+
+        // ══════════════════════════════════════════════════════
+        //  HOST DROPDOWN — powered by live presence data
+        // ══════════════════════════════════════════════════════
 
         function buildHostMenu() {
             const el = document.getElementById('host-menu-listeners');
             if (!el) return;
-            el.innerHTML = ROOM_LISTENERS.map(l => `
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 14px;">
-      <div style="width:24px;height:24px;border-radius:50%;background:${l.color};display:flex;align-items:center;justify-content:center;font-size:9px;color:#F5EDD8;flex-shrink:0;">${l.initials}</div>
-      <span style="font-size:12px;font-weight:300;color:rgba(245,237,216,0.75);">${l.name}</span>
-    </div>
-  `).join('');
+            const list = currentListeners.length > 0 ? currentListeners : [{ initials: 'YO', username: 'only you', color: 'rgba(200,123,110,0.35)' }];
+            el.innerHTML = list.map(l => `
+                <div style="display:flex;align-items:center;gap:8px;padding:6px 14px;">
+                    <div style="width:24px;height:24px;border-radius:50%;background:${l.color};display:flex;align-items:center;justify-content:center;font-size:9px;color:#F5EDD8;flex-shrink:0;">${l.initials}</div>
+                    <span style="font-size:12px;font-weight:300;color:rgba(245,237,216,0.75);">${l.username}</span>
+                </div>
+            `).join('');
         }
 
         function toggleHostMenu() {
